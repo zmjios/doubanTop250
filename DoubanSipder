@@ -1,0 +1,96 @@
+#!/usr/bin/python
+#coding:utf-8
+#encoding:utf-8
+
+import urllib 
+import urllib2 
+import re 
+import os 
+import fileinput
+import sys
+from bs4 import BeautifulSoup
+
+
+class DoubanTop250Sipder:
+	def __init__(self):
+		self.baseUrl = 'http://movie.douban.com/top250?start='
+		self.filename = os.getcwd() + '/' + "doubanTop250movies.txt"
+		self.pageNum = 0
+		self.contents = []
+
+	def getPage(self,pageNum):
+		try:
+			url = self.baseUrl + str(pageNum * 25) + "&filter=&type="
+			print(url)
+			request = urllib2.Request(url)
+			response = urllib2.urlopen(request)
+			test = response.read()
+			return test
+		except urllib2.URLError, e:
+			if hasattr(e, "reason"):
+				print r"连接豆瓣电影失败，错误原因",e.reason
+				return None 
+	#获取每一页每部电影的的名称，名词以及导演演员和简介
+	def getContent(self,page):
+		tmp_contents = []
+		soup = BeautifulSoup(page)
+		for tag in soup.find_all('div',class_="item"):
+			try:
+				m_order = tag.find('em', class_='').get_text()
+				m_name = tag.span.get_text()
+				m_rating_score = tag.find('div', class_='star').em.get_text()
+				m_rating_num = tag.find('div', class_='star').span.next_sibling.next_sibling.get_text()
+				m_comments = tag.find("span", class_="inq").get_text()
+			except AttributeError:
+				print("=======%s %s %s %s %s========" % (m_order, m_name, m_rating_score, m_rating_num, "NO COMMENTS"))
+				tmp_contents.append([m_order, m_name, m_rating_score, m_rating_num, "NO COMMENTS"])
+			else:
+				print("==========%s %s %s %s %s=========" % (m_order, m_name, m_rating_score, m_rating_num, m_comments))
+				tmp_contents.append([m_order, m_name, m_rating_score, m_rating_num, m_comments])
+		return tmp_contents
+
+	def start(self):
+		print "开始抓取电影信息"
+		print(self.filename)
+		inputTest = open(self.filename,"w+")
+		while self.pageNum < 10:
+			print("*********" + str(self.pageNum) + "***********")
+			page = self.getPage(self.pageNum)
+			tmplist = self.getContent(page)
+			self.contents.extend(tmplist)
+			self.pageNum += 1
+				
+		for array in self.contents:
+				movie = str(array[0] + " " + array[1] + " " + array[2] + " " + array[3] + "  " + array[4])
+				inputTest.write(movie + "\n")
+
+
+def main():
+	print """
+        ###############################
+            一个简单的豆瓣电影前250爬虫
+            Author: zmj
+            Version: 0.0.1
+            Date: 2015-05-24
+        ###############################
+	"""
+	reload(sys)                      # reload 才能调用 setdefaultencoding 方法  
+	sys.setdefaultencoding('utf-8')  # 设置 'utf-8'  
+	my_spider = DoubanTop250Sipder()
+	print(u'豆瓣电影TOP250:\n 序号 \t 影片名\t 评分\t 评价人数\t 评价')
+	my_spider.start()
+	print "豆瓣爬虫爬取结束..."
+
+if __name__ == '__main__':
+	main()
+
+
+
+
+		
+
+
+
+
+
+
